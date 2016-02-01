@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">EasyPoint</string>
+    <string name="action_settings">Settings</string>
+    <string name="accessibility">激活后便可以用小圆点来代替返回键了</string>
+</resources>
