@@ -1,17 +1,14 @@
 package com.zhangjie.easypoint;
 
 import android.accessibilityservice.AccessibilityService;
-import android.app.ActivityManager;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.PixelFormat;
+import android.os.Vibrator;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.TextView;
-
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
 
 /**
  * Created by zhangjie on 2016/1/30.
@@ -32,23 +29,19 @@ public class MyWindowManager {
      */
     private static WindowManager mWindowManager;
 
-    /**
-     * 用于获取手机可用内存
-     */
-    private static ActivityManager mActivityManager;
-
+    private static SharedPreferences sharedPreferences;
     /**
      * 创建一个小悬浮窗。初始位置为屏幕的右部中间位置。
      *
      * @param context
      *            必须为应用程序的Context.
      */
-    public static void createEasyPoint(Context context,AccessibilityService service) {
+    public static void createEasyPoint(Context context,AccessibilityService service,Vibrator vibrator) {
         WindowManager windowManager = getWindowManager(context);
         int screenWidth = windowManager.getDefaultDisplay().getWidth();
         int screenHeight = windowManager.getDefaultDisplay().getHeight();
         if (smallWindow == null) {
-            smallWindow = new PointView(context,service);
+            smallWindow = new PointView(context,service,vibrator);
             if (smallWindowParams == null) {
                 smallWindowParams = new WindowManager.LayoutParams();
                 smallWindowParams.type = WindowManager.LayoutParams.TYPE_PHONE;
@@ -61,15 +54,37 @@ public class MyWindowManager {
                 smallWindowParams.x = screenWidth;
                 smallWindowParams.y = screenHeight / 2;
             }
+            sharedPreferences=context.getSharedPreferences("setting", Context.MODE_PRIVATE);
+            sharedPreferences.edit().putInt("origin",smallWindowParams.width).commit();
             smallWindow.setParams(smallWindowParams);
             windowManager.addView(smallWindow, smallWindowParams);
         }
     }
 
-    public static void updateEasyPoint(Context context) {
+    public static void updateEasyPoint(Context context,int vib,int alpha,int size) {
+        //Log.i("vib alpha-->",vib+"//"+alpha+"//"+size);
         if (smallWindow != null) {
             View point=smallWindow.findViewById(R.id.point_view);
-            point.getBackground().setAlpha(50);
+            if (vib!=0){
+                smallWindow.setVibrator_val(vib-1);
+            }
+            if (alpha!=0){
+                point.getBackground().setAlpha(alpha-1);
+            }
+            if (size!=0){
+                float width=size/50.0f;
+                int origin_width=sharedPreferences.getInt("origin",0);
+
+                smallWindowParams.width = (int) (width*origin_width);
+                smallWindowParams.height = (int) (width*origin_width);
+                point.getLayoutParams().width= (int) (width*origin_width);
+                point.getLayoutParams().height= (int) (width*origin_width);
+                //Log.i("width",origin_width+"//"+smallWindowParams.width+"//"+width*origin_width);
+                smallWindow.setParams(smallWindowParams);
+                WindowManager manager= (WindowManager) context.getSystemService(context.WINDOW_SERVICE);
+                manager.updateViewLayout(smallWindow, smallWindowParams);
+
+            }
         }
     }
 

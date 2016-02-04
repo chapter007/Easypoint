@@ -27,6 +27,21 @@
             android:layout_height="wrap_content"
             android:text="关闭圆点"
             android:id="@+id/stop_point"/>
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="设置震动"
+            android:id="@+id/set_vibrate"/>
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="设透明度"
+            android:id="@+id/set_alpha"/>
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="圆点大小"
+            android:id="@+id/set_size"/>
     </LinearLayout>
 
     <LinearLayout
