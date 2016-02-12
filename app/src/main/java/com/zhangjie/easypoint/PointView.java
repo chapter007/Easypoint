@@ -11,6 +11,10 @@ import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.view.animation.ScaleAnimation;
 import android.widget.LinearLayout;
 
 import java.lang.reflect.Field;
@@ -102,6 +106,13 @@ public class PointView extends LinearLayout{
                 time=event.getDownTime();
                 mView.setBackgroundResource(R.drawable.clickshape);
                 mView.getBackground().setAlpha(255);
+                AlphaAnimation alphaAnimation= new AlphaAnimation(0.5f,1.0f);
+                alphaAnimation.setDuration(1000);
+                ScaleAnimation scaleAnimation=new ScaleAnimation(0.8f, 1.0f, 0.8f, 1.0f,
+                        Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
+                scaleAnimation.setDuration(300);
+                mView.startAnimation(alphaAnimation);
+                mView.startAnimation(scaleAnimation);
                 break;
             case MotionEvent.ACTION_MOVE:
                 xInScreen = event.getRawX();

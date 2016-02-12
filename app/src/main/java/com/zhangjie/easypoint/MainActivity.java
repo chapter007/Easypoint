@@ -54,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
         Button set_size= (Button) findViewById(R.id.set_size);
         final LinearLayout tip= (LinearLayout) findViewById(R.id.tip);
         checkService();
+        if(isEnabled){tip.setVisibility(View.VISIBLE);}
         start.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
