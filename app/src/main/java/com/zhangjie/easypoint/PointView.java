@@ -15,6 +15,7 @@ import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.view.animation.ScaleAnimation;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.LinearLayout;
 
 import java.lang.reflect.Field;
@@ -23,18 +24,19 @@ import java.lang.reflect.Field;
  * Created by zhangjie on 2016/1/30.
  */
 public class PointView extends LinearLayout{
+	private Context mContext;
     /**
      * 记录小圆点的宽度
      */
-    public static int viewWidth;
+    public int viewWidth;
     /**
      * 记录小圆点的高度
      */
-    public static int viewHeight;
+    public int viewHeight;
     /**
      * 记录系统状态栏的高度
      */
-    private static int statusBarHeight;
+    private int statusBarHeight;
     /**
      * 用于更新小圆点的位置
      */
@@ -69,12 +71,13 @@ public class PointView extends LinearLayout{
      * 记录手指按下时在小圆点的View上的纵坐标的值
      */
     private float yInView;
-    private Context mContext;
+    
     private AccessibilityService mService;
     private View mView;
     private Vibrator mVibrator;
-    private int vibrator_val;
+    private int vibrator_val,screenwidth;
     private SharedPreferences sharedPreferences;
+    private boolean isHide;
 
     public PointView(Context context,AccessibilityService service,Vibrator vibrator) {
         super(context);
@@ -84,17 +87,17 @@ public class PointView extends LinearLayout{
         windowManager= (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
         LayoutInflater.from(context).inflate(R.layout.point_simple,this);
         mView=findViewById(R.id.point_view);
+        screenwidth=windowManager.getDefaultDisplay().getWidth();
         viewWidth=mView.getLayoutParams().width;
         viewHeight=mView.getLayoutParams().height;
-        sharedPreferences=context.getSharedPreferences("setting",Context.MODE_PRIVATE);
-        vibrator_val=sharedPreferences.getInt("vibrate",0);
+        sharedPreferences=context.getSharedPreferences("setting", Context.MODE_PRIVATE);
+        vibrator_val=sharedPreferences.getInt("vibrate", 0);
     }
 
     boolean isMove=false;
-
+    long lasTime=0;
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 xInView = event.getX();
@@ -103,7 +106,11 @@ public class PointView extends LinearLayout{
                 yDownInScreen = event.getRawY() - getStatusBarHeight();
                 xInScreen = event.getRawX();
                 yInScreen = event.getRawY() - getStatusBarHeight();
-                time=event.getDownTime();
+
+                //time=event.getDownTime();//按下时间
+                time=event.getDownTime()-lasTime;
+                lasTime=event.getDownTime();
+
                 mView.setBackgroundResource(R.drawable.clickshape);
                 mView.getBackground().setAlpha(255);
                 AlphaAnimation alphaAnimation= new AlphaAnimation(0.5f,1.0f);
@@ -118,7 +125,7 @@ public class PointView extends LinearLayout{
                 xInScreen = event.getRawX();
                 yInScreen = event.getRawY() - getStatusBarHeight();
                 // 手指移动的时候更新小悬浮窗的位置
-                float pressTime=event.getEventTime()-time;
+                float pressTime=event.getEventTime()-event.getDownTime();
                 mView.getBackground().setAlpha(255);
                 if(pressTime>1000){
                     updateViewPosition();
@@ -130,28 +137,44 @@ public class PointView extends LinearLayout{
                 break;
             case MotionEvent.ACTION_UP:
                 // 如果手指离开屏幕时，xDownInScreen和xInScreen相等，且yDownInScreen和yInScreen相等，则视为触发了单击事件。
-                float length=yDownInScreen-yInScreen;
-                float wlength=Math.abs(xDownInScreen-xInScreen);
-                float hlength=Math.abs(yDownInScreen - yInScreen);
-
-                if (wlength<200&&length>0&&hlength>40&&!isMove){
-                    Log.i("上划,y", "" + wlength + "/" + length);
+                float yLength=yDownInScreen-yInScreen;//y轴距离，有方向
+                float xLength=xDownInScreen-xInScreen;//x轴距离，有方向
+                float wLength=Math.abs(xDownInScreen-xInScreen);//x轴距离
+                float hLength=Math.abs(yDownInScreen - yInScreen);//y轴距离
+                //if(time<500) isDoubleClick=true;
+                if (wLength<200&&yLength>0&&hLength>40&&!isMove){
+                    Log.i("上划,y", "" + wLength + "/" + yLength);
                     mService.performGlobalAction(AccessibilityService.GLOBAL_ACTION_RECENTS);
                     mVibrator.vibrate(vibrator_val);
-                }else if(wlength<200&&length<0&&hlength>40&&!isMove){
-                    Log.i("下划,y", ""+wlength+"/" +length);
+                }else if(wLength<200&&yLength<0&&hLength>40&&!isMove){
+                    Log.i("下划,y", ""+wLength+"/" +yLength);
                     // 模拟HOME键
                     Intent i = new Intent(Intent.ACTION_MAIN);
                     i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK); // 如果是服务里调用，必须加入new task标识
                     i.addCategory(Intent.CATEGORY_HOME);
                     mContext.startActivity(i);
                     mVibrator.vibrate(vibrator_val);
-                }else if(wlength<40&&hlength<40&&!isMove){
-                    Log.i("点击,x,y", "" + wlength + "/" + hlength);
+                }else if(wLength<10&&hLength<40&&!isMove){
+                    Log.i("点击,y", "" + wLength + "/" + yLength);
                     mService.performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK);
                     mVibrator.vibrate(vibrator_val);
+                }else if(xLength>10&&hLength<80&&!isMove){
+                    Log.i("左滑,y", "" + xLength + "/" + yLength);
+                    if (isHide){
+                        showView();
+                    }else {
+                        mService.performGlobalAction(AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS);
+                        mVibrator.vibrate(vibrator_val);
+                    }
+
+                }else if(!isMove){
+                    Log.i("右滑,y", "" + xLength + "/" + yLength);
+                    if (!isHide){
+                        hideView();
+                        mVibrator.vibrate(vibrator_val);
+                    }
                 }else {
-                    Log.i("x,y", ""+wlength+"/"+length);
+                    Log.i("x,y", "" +xLength+"/"+ wLength + "/" + yLength);
                 }
                 mView.setBackgroundResource(R.drawable.shape);
                 int alpha=sharedPreferences.getInt("alpha",50);
@@ -164,7 +187,6 @@ public class PointView extends LinearLayout{
 
         return false;
     }
-
 
     /**
      * 将小圆点的参数传入，用于更新小圆点的位置。
@@ -185,9 +207,24 @@ public class PointView extends LinearLayout{
     private void updateViewPosition() {
         mParams.x = (int) (xInScreen - xInView);
         mParams.y = (int) (yInScreen - yInView);
+        //Log.i("width",""+mParams);
         windowManager.updateViewLayout(this, mParams);
     }
 
+    private void hideView() {
+        mParams.width=viewWidth-30;
+        //mView.getLayoutParams().width=viewWidth-30;
+        isHide=true;
+        mParams.x = (int) (xInScreen - xInView);
+        windowManager.updateViewLayout(this, mParams);
+    }
+
+    private void showView() {
+        Log.i("width",""+viewWidth);
+        isHide=false;
+        mParams.width=viewWidth;
+        windowManager.updateViewLayout(this, mParams);
+    }
     /**
      * 用于获取状态栏的高度。
      *
@@ -207,4 +244,6 @@ public class PointView extends LinearLayout{
         }
         return statusBarHeight;
     }
+
+
 }

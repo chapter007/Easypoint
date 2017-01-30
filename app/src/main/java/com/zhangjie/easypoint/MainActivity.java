@@ -39,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean isEnabled;
     private SharedPreferences setting;
-
+    private MyWindowManager myWindowManager;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -53,7 +53,12 @@ public class MainActivity extends AppCompatActivity {
         Button set_alpha= (Button) findViewById(R.id.set_alpha);
         Button set_size= (Button) findViewById(R.id.set_size);
         final LinearLayout tip= (LinearLayout) findViewById(R.id.tip);
+        setting=getSharedPreferences("setting",MODE_PRIVATE);
+        myWindowManager=new MyWindowManager();
+
         checkService();
+
+
         if(isEnabled){tip.setVisibility(View.VISIBLE);}
         start.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -103,7 +108,7 @@ public class MainActivity extends AppCompatActivity {
         if(Build.VERSION.SDK_INT>22&&!Settings.canDrawOverlays(this)){
             requestAlertWindowPermission();
         }
-        setting=getSharedPreferences("setting",MODE_PRIVATE);
+
 
     }
     //6.0权限需要
@@ -172,13 +177,13 @@ public class MainActivity extends AppCompatActivity {
                     public void onClick(DialogInterface dialogInterface, int i) {
                         switch (type) {
                             case 0:
-                                MyWindowManager.updateEasyPoint(MainActivity.this, setting.getInt("vibrate", 0) + 1, 0, 0);
+                                myWindowManager.updateEasyPoint(MainActivity.this, setting.getInt("vibrate", 0) + 1, 0, 0);
                                 break;
                             case 1:
-                                MyWindowManager.updateEasyPoint(MainActivity.this, 0, setting.getInt("alpha", 0), 0);
+                                myWindowManager.updateEasyPoint(MainActivity.this, 0, setting.getInt("alpha", 0), 0);
                                 break;
                             case 2:
-                                MyWindowManager.updateEasyPoint(MainActivity.this, 0, 0, setting.getInt("size", 0));
+                                myWindowManager.updateEasyPoint(MainActivity.this, 0, 0, setting.getInt("size", 0));
                                 break;
                             default:
                                 break;
@@ -254,6 +259,7 @@ public class MainActivity extends AppCompatActivity {
         AccessibilityManager manager = (AccessibilityManager) getSystemService(ACCESSIBILITY_SERVICE);
         List<AccessibilityServiceInfo> list = AccessibilityManagerCompat.getEnabledAccessibilityServiceList(manager,
                 AccessibilityServiceInfo.FEEDBACK_ALL_MASK);
+
         //System.out.println("list.size = " + list.size());
         if (list.size()==0) isEnabled=false;
         for (int i = 0; i < list.size(); i++) {

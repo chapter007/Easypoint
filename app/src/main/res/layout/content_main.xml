@@ -67,6 +67,10 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="下划返回桌面"/>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="左划下拉通知"/>
     </LinearLayout>
 
 </RelativeLayout>
