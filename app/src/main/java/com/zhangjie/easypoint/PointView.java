@@ -168,11 +168,11 @@ public class PointView extends LinearLayout{
                     }
 
                 }else if(!isMove){
-                    Log.i("右滑,y", "" + xLength + "/" + yLength);
-                    if (!isHide){
+                    //Log.i("右滑,y", "" + xLength + "/" + yLength);右划现在不处理
+                    /*if (!isHide){
                         hideView();
                         mVibrator.vibrate(vibrator_val);
-                    }
+                    }*/
                 }else {
                     Log.i("x,y", "" +xLength+"/"+ wLength + "/" + yLength);
                 }
@@ -184,7 +184,6 @@ public class PointView extends LinearLayout{
             default:
                 break;
         }
-
         return false;
     }
 

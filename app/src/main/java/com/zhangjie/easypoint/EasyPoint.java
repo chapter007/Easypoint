@@ -32,6 +32,7 @@ import java.util.TimerTask;
 /**
  * Created by zhangjie on 2016/1/30.
  */
+
 public class EasyPoint extends AccessibilityService {
     private AccessibilityService service;
     private Vibrator vibrator;
