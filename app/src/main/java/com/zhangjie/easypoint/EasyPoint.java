@@ -102,7 +102,8 @@ public class EasyPoint extends AccessibilityService {
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent accessibilityEvent) {
-
+        Log.i("zhangjie", "onAccessibilityEvent: connect?");
+        Log.d("zhangjie", "onAccessibilityEvent: " + accessibilityEvent.toString());
     }
 
     @Override

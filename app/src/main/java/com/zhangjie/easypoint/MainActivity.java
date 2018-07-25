@@ -55,7 +55,8 @@ public class MainActivity extends AppCompatActivity {
         final LinearLayout tip= (LinearLayout) findViewById(R.id.tip);
         setting=getSharedPreferences("setting",MODE_PRIVATE);
         myWindowManager=new MyWindowManager();
-
+        Intent intent = new Intent(MainActivity.this, EasyPoint.class);
+        startService(intent);
         checkService();
 
 
@@ -257,7 +258,8 @@ public class MainActivity extends AppCompatActivity {
 
     public void checkService(){
         AccessibilityManager manager = (AccessibilityManager) getSystemService(ACCESSIBILITY_SERVICE);
-        List<AccessibilityServiceInfo> list = AccessibilityManagerCompat.getInstalledAccessibilityServiceList(manager);
+        assert manager != null;
+        List<AccessibilityServiceInfo> list = manager.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK);
 
         //System.out.println("list.size = " + list.size());
         if (list.size()==0) isEnabled=false;
