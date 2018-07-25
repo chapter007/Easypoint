@@ -257,8 +257,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void checkService(){
         AccessibilityManager manager = (AccessibilityManager) getSystemService(ACCESSIBILITY_SERVICE);
-        List<AccessibilityServiceInfo> list = AccessibilityManagerCompat.getEnabledAccessibilityServiceList(manager,
-                AccessibilityServiceInfo.FEEDBACK_ALL_MASK);
+        List<AccessibilityServiceInfo> list = AccessibilityManagerCompat.getInstalledAccessibilityServiceList(manager);
 
         //System.out.println("list.size = " + list.size());
         if (list.size()==0) isEnabled=false;
