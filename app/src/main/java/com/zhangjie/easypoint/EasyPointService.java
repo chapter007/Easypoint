@@ -33,10 +33,9 @@ import java.util.TimerTask;
  * Created by zhangjie on 2016/1/30.
  */
 
-public class EasyPoint extends AccessibilityService {
+public class EasyPointService extends AccessibilityService {
     private AccessibilityService service;
     private Vibrator vibrator;
-    private Configuration cf;
     private SharedPreferences setting;
     private MyWindowManager myWindowManager;
 
@@ -46,7 +45,7 @@ public class EasyPoint extends AccessibilityService {
     }
 
 
-    public EasyPoint() {
+    public EasyPointService() {
         service = this;
         myWindowManager=new MyWindowManager();
     }
@@ -63,12 +62,6 @@ public class EasyPoint extends AccessibilityService {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        //开启定时器，每隔5秒检测一下
-        if (timer == null) {
-            timer = new Timer();
-            timer.scheduleAtFixedRate(new RefreshTask(), 0, 1000);
-        }
-        cf = getApplicationContext().getResources().getConfiguration(); //获取设置的配置信息
         vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
         setting = getApplicationContext().getSharedPreferences("setting", MODE_PRIVATE);
 
@@ -77,7 +70,7 @@ public class EasyPoint extends AccessibilityService {
             @Override
             public void run() {
                 myWindowManager.createEasyPoint(getApplicationContext(), service, vibrator);
-                myWindowManager.updateEasyPoint(getApplicationContext(),
+                MyWindowManager.updateEasyPoint(getApplicationContext(),
                         setting.getInt("vibrate", 0) + 1, setting.getInt("alpha", 0), setting.getInt("size", 0));
             }
         });
@@ -88,21 +81,19 @@ public class EasyPoint extends AccessibilityService {
     public void onDestroy() {
         super.onDestroy();
         //计时器也销毁
-        Log.i("destroy", "");
         timer.cancel();
         timer = null;
         //关闭圆点
         handler.post(new Runnable() {
             @Override
             public void run() {
-                MyWindowManager.removeEasyPoint(getApplicationContext());
+                myWindowManager.removeEasyPoint(getApplicationContext());
             }
         });
     }
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent accessibilityEvent) {
-        Log.i("zhangjie", "onAccessibilityEvent: connect?");
         Log.d("zhangjie", "onAccessibilityEvent: " + accessibilityEvent.toString());
     }
 
@@ -111,6 +102,25 @@ public class EasyPoint extends AccessibilityService {
 
     }
 
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        //切换为竖屏
+        this.getResources().getConfiguration();
+        if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
+            myWindowManager.removeHidePoint(getApplicationContext());
+//            myWindowManager.removeEasyPoint(getApplicationContext());
+            myWindowManager.createEasyPoint(getApplicationContext(),this,vibrator);
+        }
+        //切换为横屏
+        else if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            //todo 横屏的时候不是完全隐藏，而是收缩起来，类似小米那样
+//            myWindowManager.removeHidePoint(getApplicationContext());
+            myWindowManager.removeEasyPoint(getApplicationContext());
+            myWindowManager.createHidePoint(getApplicationContext(),this,vibrator);
+        }
+
+    }
 
     @Override
     protected void onServiceConnected() {
@@ -123,49 +133,4 @@ public class EasyPoint extends AccessibilityService {
         setServiceInfo(info);
     }
 
-
-    class RefreshTask extends TimerTask {
-        //检测横屏隐藏圆点
-        @Override
-        public void run() {
-            int ori = Configuration.ORIENTATION_PORTRAIT;
-            if (cf!=null) ori = cf.orientation; //获取屏幕方向
-            //Log.i("timer task",""+ori);
-            if (MyWindowManager.isWindowShowing()) {
-                if (ori == Configuration.ORIENTATION_LANDSCAPE) {//虚拟机下就是横屏的
-                    handler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            //MyWindowManager.updateEasyPointPosition(getApplicationContext(), 10);
-                            //MyWindowManager.updateEasyPoint(getApplicationContext(), 0, 2, 0);
-                            //横屏不再自动隐藏，改为手动隐藏
-                        }
-                    });
-
-                } else if (ori == Configuration.ORIENTATION_PORTRAIT) {
-                    //Log.i("竖屏",""+2);
-                    handler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            int alpha = getSharedPreferences("setting", MODE_PRIVATE).getInt("alpha", 50);
-                            //MyWindowManager.resumeEasyPoint(getApplicationContext());
-                            //MyWindowManager.updateEasyPoint(getApplicationContext(), 0, alpha, 0);
-                        }
-                    });
-                }
-
-                MyWindowManager.getViewInfo(getApplicationContext());
-
-            } else {
-                handler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        myWindowManager.createEasyPoint(getApplicationContext(), service, vibrator);
-                    }
-                });
-            }
-
-
-        }
-    }
 }

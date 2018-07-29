@@ -1,12 +1,13 @@
 package com.zhangjie.easypoint;
 
 import android.accessibilityservice.AccessibilityService;
+import android.app.Activity;
+import android.app.Application;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.os.Vibrator;
-import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
@@ -17,15 +18,18 @@ import android.view.WindowManager;
  * Created by zhangjie on 2016/1/30.
  */
 public class MyWindowManager {
+    private static final String TAG = "MyWindowManager";
     /**
      * 小悬浮窗View的实例
      */
     private static PointView smallWindow;
+    private static PointHideView hideWindow;
 
     /**
      * 小悬浮窗View的参数
      */
     private static WindowManager.LayoutParams smallWindowParams;
+    private static WindowManager.LayoutParams hideWindowParams;
 
     /**
      * 用于控制在屏幕上添加或移除悬浮窗
@@ -39,12 +43,15 @@ public class MyWindowManager {
      *
      * @param context 必须为应用程序的Context.
      */
-    public void createEasyPoint(Context context, AccessibilityService service, Vibrator vibrator) {
+    void createEasyPoint(Context context, AccessibilityService service, Vibrator vibrator) {
         WindowManager windowManager = getWindowManager(context);
+        sharedPreferences = context.getSharedPreferences("setting", Context.MODE_PRIVATE);
+
         int screenWidth = windowManager.getDefaultDisplay().getWidth();
         int screenHeight = windowManager.getDefaultDisplay().getHeight();
         if (smallWindow == null) {
             smallWindow = new PointView(context, service, vibrator);
+            View point = smallWindow.findViewById(R.id.point_view);
             if (smallWindowParams == null) {
                 smallWindowParams = new WindowManager.LayoutParams();
                 smallWindowParams.type = WindowManager.LayoutParams.TYPE_PHONE;
@@ -56,19 +63,57 @@ public class MyWindowManager {
                 smallWindowParams.height = smallWindow.viewHeight;
                 smallWindowParams.x = screenWidth;
                 smallWindowParams.y = screenHeight / 2;
+            }else {
+                smallWindowParams.width = smallWindow.viewWidth;
+                smallWindowParams.height = smallWindow.viewHeight;
+                smallWindowParams.x = screenWidth;
+                smallWindowParams.y = screenHeight / 2;
             }
-            sharedPreferences = context.getSharedPreferences("setting", Context.MODE_PRIVATE);
-            sharedPreferences.edit().putInt("origin", smallWindowParams.width).commit();
+            point.getLayoutParams().width = smallWindow.viewWidth;
+            point.getLayoutParams().height= smallWindow.viewHeight;
+            sharedPreferences.edit().putInt("origin", 48).apply();
             smallWindow.setParams(smallWindowParams);
             windowManager.addView(smallWindow, smallWindowParams);
         }
     }
 
-    public void updateEasyPoint(final Context context, int vib, int alpha, int size) {
-        int origin_width = sharedPreferences.getInt("origin", 0);
-        float width = size / 50.0f;
+    void createHidePoint(Context context, AccessibilityService service,Vibrator vibrator) {
         WindowManager windowManager = getWindowManager(context);
+        int screenWidth = windowManager.getDefaultDisplay().getWidth();
+        int screenHeight = windowManager.getDefaultDisplay().getHeight();
+        if (hideWindow == null) {
+            hideWindow = new PointHideView(context,service,vibrator);
+            if (hideWindowParams == null) {
+                hideWindowParams = new WindowManager.LayoutParams();
+                hideWindowParams.type = WindowManager.LayoutParams.TYPE_PHONE;
+                hideWindowParams.format = PixelFormat.RGBA_8888;
+                hideWindowParams.flags = WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+                        | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+                hideWindowParams.gravity = Gravity.LEFT | Gravity.TOP;
+                hideWindowParams.width = hideWindow.viewWidth;
+                hideWindowParams.height = hideWindow.viewHeight;
+                hideWindowParams.x = screenWidth;
+                hideWindowParams.y = screenHeight / 2;
+                Log.i(TAG, "createHidePoint: x: "+hideWindowParams.x+" y: "+hideWindowParams.y);
+            }else {
+                hideWindowParams.width = hideWindow.viewWidth;
+                hideWindowParams.height = hideWindow.viewHeight;
+                hideWindowParams.x = screenWidth;
+                hideWindowParams.y = screenHeight / 2;
+            }
+            sharedPreferences = context.getSharedPreferences("setting", Context.MODE_PRIVATE);
+            sharedPreferences.edit().putInt("origin", hideWindowParams.width).apply();
+            hideWindow.setParams(hideWindowParams);
+            windowManager.addView(hideWindow, hideWindowParams);
+        }
+    }
 
+    static void updateEasyPoint(final Context context, int vib, int alpha, int size) {
+        int origin_width = sharedPreferences.getInt("origin", 0);
+        WindowManager manager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+        float width = size / 50.0f;
+        int screenWidth = manager.getDefaultDisplay().getWidth();
+        int screenHeight = manager.getDefaultDisplay().getHeight();
         if (smallWindow != null) {
             View point = smallWindow.findViewById(R.id.point_view);
             if (vib != 0) {
@@ -78,22 +123,20 @@ public class MyWindowManager {
                 point.getBackground().setAlpha(alpha - 1);
             }
             if (size != 0) {
-                smallWindow.setParams(smallWindowParams);
-                WindowManager manager = (WindowManager) context.getSystemService(context.WINDOW_SERVICE);
-                manager.updateViewLayout(smallWindow, smallWindowParams);
                 smallWindowParams.width = (int) (width*origin_width);
                 smallWindowParams.height = (int) (width*origin_width);
                 point.getLayoutParams().width = (int) (width*origin_width);
                 point.getLayoutParams().height= (int) (width*origin_width);
-
+                smallWindow.setParams(smallWindowParams);
+                smallWindowParams.x = screenWidth;
+                smallWindowParams.y = screenHeight / 2;
+                manager.updateViewLayout(smallWindow, smallWindowParams);
             }
         }
     }
 
-    public static void resumeEasyPoint(final Context context) {
-        //Log.i("vib alpha-->",vib+"//"+alpha+"//"+size);
-        //int origin_width = sharedPreferences.getInt("origin", 0);
-        float size = sharedPreferences.getInt("size", 0);
+    static void resumeEasyPoint(final Context context) {
+        float size = sharedPreferences.getInt("size", 56);
         int origin_width = sharedPreferences.getInt("origin", 0);
         float width = size / 50.0f;
         WindowManager windowManager = getWindowManager(context);
@@ -101,25 +144,26 @@ public class MyWindowManager {
         int screenHeight = windowManager.getDefaultDisplay().getHeight();
 
         if (smallWindow != null) {
-            //Log.i("test view change","//"+(int) (width));
             View point = smallWindow.findViewById(R.id.point_view);
             smallWindowParams.width = (int) (width);
-            //smallWindowParams.height = (int) (width*origin_width);
+            smallWindowParams.height = (int) (width*origin_width);
             point.getLayoutParams().width = (int) (width);
-            //point.getLayoutParams().height= (int) (width*origin_width);
-            //smallWindowParams.x = (int) (screenWidth);
-            //smallWindowParams.y = (int) (screenHeight);
+            point.getLayoutParams().height= (int) (width*origin_width);
+            smallWindowParams.x = (int) (screenWidth);
+            smallWindowParams.y = (int) (screenHeight);
             smallWindow.setParams(smallWindowParams);
             WindowManager manager = (WindowManager) context.getSystemService(context.WINDOW_SERVICE);
             manager.updateViewLayout(smallWindow, smallWindowParams);
-
         }
     }
 
     public static void updateEasyPointPosition(final Context context, int xy) {
         WindowManager windowManager = getWindowManager(context);
+        float size = sharedPreferences.getInt("size", 56);
         int screenWidth = windowManager.getDefaultDisplay().getWidth();
         int screenHeight = windowManager.getDefaultDisplay().getHeight();
+        int origin_width = sharedPreferences.getInt("origin", 0);
+        float width = size / 50.0f;
 
         if (smallWindow != null) {
             View point = smallWindow.findViewById(R.id.point_view);
@@ -129,10 +173,10 @@ public class MyWindowManager {
             //point.getLayoutParams().height=10;
             point.getLayoutParams().width = xy;//横屏时修改了宽，竖屏后改回来
             point.getBackground().setAlpha(0);//使圆点变小并且透明
-            //smallWindowParams.y = (int) (screenHeight);
-            //point.getLayoutParams().width= (int) (width*origin_width);
-            //point.getLayoutParams().height= (int) (width*origin_width);
-            //Log.i("width",origin_width+"//"+smallWindowParams.width+"//"+width*origin_width);
+            smallWindowParams.y = (int) (screenHeight);
+            point.getLayoutParams().width= (int) (width*origin_width);
+            point.getLayoutParams().height= (int) (width*origin_width);
+            Log.i("width",origin_width+"//"+smallWindowParams.width+"//"+width*origin_width);
             smallWindow.setParams(smallWindowParams);
             WindowManager manager = (WindowManager) context.getSystemService(context.WINDOW_SERVICE);
             manager.updateViewLayout(smallWindow, smallWindowParams);
@@ -167,44 +211,22 @@ public class MyWindowManager {
      *
      * @param context 必须为应用程序的Context.
      */
-    public static void removeEasyPoint(Context context) {
+    public void removeEasyPoint(Context context) {
         if (smallWindow != null) {
             WindowManager windowManager = getWindowManager(context);
-            windowManager.removeView(smallWindow);
+            windowManager.removeViewImmediate(smallWindow);
+//            windowManager.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
             smallWindow = null;
         }
     }
 
-    /**
-     * 得到view信息
-     *
-     * @param context 必须为应用程序的Context.
-     *                看来无法获得键盘状况了。。
-     */
-    public static void getViewInfo(Context context) {
-        if (smallWindow != null) {
-            smallWindow.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-                @Override
-                public void onGlobalLayout() {
-                    Rect r = new Rect();
-                    smallWindow.getWindowVisibleDisplayFrame(r);//这里得到的是smallwindow的window而不是系统的
-                    int screenHeight = smallWindow.getRootView().getHeight();
-
-                    // r.bottom is the position above soft keypad or device button.
-                    // if keypad is shown, the r.bottom is smaller than that before.
-                    int keypadHeight = screenHeight - r.bottom;
-
-                    //Log.d("Test", "keypadHeight = " + keypadHeight+"screenHeight = " +screenHeight);
-
-                    if (keypadHeight > screenHeight * 0.15) { // 0.15 ratio is perhaps enough to determine keypad height.
-                        // keyboard is opened
-                        //Log.d("Test", "keyboard is opened " );
-                    } else {
-                        // keyboard is closed
-                    }
-                }
-
-            });
+    public void removeHidePoint(Context context) {
+        if (hideWindow != null) {
+            WindowManager windowManager = getWindowManager(context);
+            windowManager.removeViewImmediate(hideWindow);
+//            activity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            hideWindow = null;
         }
     }
+
 }

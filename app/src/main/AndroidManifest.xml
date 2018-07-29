@@ -24,7 +24,7 @@
             </intent-filter>
         </activity>
 
-        <service android:name=".EasyPoint"
+        <service android:name=".EasyPointService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
 
             <intent-filter>
@@ -35,6 +35,10 @@
                 android:resource="@xml/accessibilityservice" />
         </service>
 
+        <meta-data
+            android:name="io.fabric.ApiKey"
+            android:value="151f5ed71c0c475b356f648bb7011efc3c49aa8f" />
     </application>
 
+    <uses-permission android:name="android.permission.INTERNET" />
 </manifest>

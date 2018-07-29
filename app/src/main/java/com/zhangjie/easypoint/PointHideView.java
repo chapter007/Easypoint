@@ -2,8 +2,12 @@ package com.zhangjie.easypoint;
 
 import android.accessibilityservice.AccessibilityService;
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.RectF;
 import android.os.Vibrator;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -18,26 +22,20 @@ import android.widget.LinearLayout;
 import java.lang.reflect.Field;
 
 /**
- * Created by zhangjie on 2016/1/30.
+ * Created by zhangjie on 2018/7/28.
  */
-public class PointView extends LinearLayout{
-	private Context mContext;
+public class PointHideView extends LinearLayout{
+    private static final String TAG = "PointHideView";
+    private Context mContext;
+    private AccessibilityService mService;
+    private Vibrator mVib;
     public int viewWidth;
     public int viewHeight;
     private int statusBarHeight;
     private WindowManager windowManager;
     private WindowManager.LayoutParams mParams;
-    /**
-     * 记录当前手指位置在屏幕上的横坐标值
-     */
     private float xInScreen;
-    /**
-     * 记录当前手指位置在屏幕上的纵坐标值
-     */
     private float yInScreen;
-    /**
-     * 记录手指按下时在屏幕上的横坐标的值
-     */
     private float xDownInScreen;
     /**
      * 记录手指按下时在屏幕上的纵坐标的值
@@ -47,42 +45,36 @@ public class PointView extends LinearLayout{
      * 记录手指按下时在小圆点的View上的横坐标的值
      */
     private float xInView;
-    //按下时间
-    private long time;
     /**
      * 记录手指按下时在小圆点的View上的纵坐标的值
      */
     private float yInView;
-    
-    private AccessibilityService mService;
+
     private View mView;
-    private Vibrator mVibrator;
-    private int vibrator_val,screenwidth;
     private SharedPreferences sharedPreferences;
-    private boolean isHide;
+    private Paint paint;
+    private RectF oval;
     private MyWindowManager myWindowManager;
 
-    public PointView(Context context,AccessibilityService service,Vibrator vibrator) {
+    public PointHideView(Context context,AccessibilityService service,Vibrator vibrator) {
         super(context);
         mContext=context;
         mService=service;
-        mVibrator=vibrator;
-        myWindowManager=new MyWindowManager();
+        mVib=vibrator;
         windowManager= (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
-        LayoutInflater.from(context).inflate(R.layout.point_simple,this);
-        mView=findViewById(R.id.point_view);
-        screenwidth=windowManager.getDefaultDisplay().getWidth();
-//        viewWidth=mView.getLayoutParams().width;
-//        viewHeight=mView.getLayoutParams().height;
+        myWindowManager=new MyWindowManager();
+        LayoutInflater.from(context).inflate(R.layout.point_hide,this);
+        mView=findViewById(R.id.point_hide_view);
+        viewWidth=mView.getLayoutParams().width;
+        viewHeight=mView.getLayoutParams().height;
         sharedPreferences=context.getSharedPreferences("setting", Context.MODE_PRIVATE);
-        int origin_width = sharedPreferences.getInt("origin", 0);
-        int alpha = sharedPreferences.getInt("alpha",50);
-        vibrator_val=sharedPreferences.getInt("vibrate", 0);
-        int size=sharedPreferences.getInt("size",50);
-        float width = size/50.0f;
-        viewWidth= (int) (origin_width*width);
-        viewHeight= (int) (origin_width*width);
-        setAlpha(alpha);
+
+        initPaint();
+    }
+
+    private void initPaint() {
+        paint = new Paint();
+        oval = new RectF();
     }
 
     boolean isMove=false;
@@ -99,25 +91,24 @@ public class PointView extends LinearLayout{
                 yInScreen = event.getRawY() - getStatusBarHeight();
 
                 //time=event.getDownTime();//按下时间
-                time=event.getDownTime()-lasTime;
                 lasTime=event.getDownTime();
 
-                mView.setBackgroundResource(R.drawable.shape);
-                mView.getBackground().setAlpha(255);
+//                mView.setBackgroundResource(R.drawable.hideshape);
+//                mView.getBackground().setAlpha(255);
                 AlphaAnimation alphaAnimation= new AlphaAnimation(0.5f,1.0f);
                 alphaAnimation.setDuration(1000);
                 ScaleAnimation scaleAnimation=new ScaleAnimation(0.8f, 1.0f, 0.8f, 1.0f,
                         Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
                 scaleAnimation.setDuration(300);
-                mView.startAnimation(alphaAnimation);
-                mView.startAnimation(scaleAnimation);
+//                mView.startAnimation(alphaAnimation);
+//                mView.startAnimation(scaleAnimation);
                 break;
             case MotionEvent.ACTION_MOVE:
                 xInScreen = event.getRawX();
                 yInScreen = event.getRawY() - getStatusBarHeight();
                 // 手指移动的时候更新小悬浮窗的位置
                 float pressTime=event.getEventTime()-event.getDownTime();
-                mView.getBackground().setAlpha(255);
+//                mView.getBackground().setAlpha(255);
                 if(pressTime>1000){
                     updateViewPosition();
                     isMove=true;
@@ -133,33 +124,15 @@ public class PointView extends LinearLayout{
                 float wLength=Math.abs(xDownInScreen-xInScreen);//x轴距离
                 float hLength=Math.abs(yDownInScreen - yInScreen);//y轴距离
                 //if(time<500) isDoubleClick=true;
-                if (wLength<200&&yLength>0&&hLength>40&&!isMove){
-                    Log.i("上划,y", "" + wLength + "/" + yLength);
-                    mService.performGlobalAction(AccessibilityService.GLOBAL_ACTION_RECENTS);
-                    mVibrator.vibrate(vibrator_val);
-                }else if(wLength<200&&yLength<0&&hLength>40&&!isMove){
-                    Log.i("下划,y", ""+wLength+"/" +yLength);
-                    // 模拟HOME键
-                    Intent i = new Intent(Intent.ACTION_MAIN);
-                    i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK); // 如果是服务里调用，必须加入new task标识
-                    i.addCategory(Intent.CATEGORY_HOME);
-                    mContext.startActivity(i);
-                    mVibrator.vibrate(vibrator_val);
-                }else if(wLength<10&&hLength<40&&!isMove){
-                    Log.i("点击,y", "" + wLength + "/" + yLength);
-                    mService.performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK);
-                    mVibrator.vibrate(vibrator_val);
-                }else if(xLength>10&&hLength<80&&!isMove){
+                if(!isMove){
+                    // todo 只要碰到就进入普通模式
                     Log.i("左滑,y", "" + xLength + "/" + yLength);
-                        mService.performGlobalAction(AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS);
-                        mVibrator.vibrate(vibrator_val);
-                }else if(!isMove){
-                    myWindowManager.removeEasyPoint(mContext);
-                    myWindowManager.createHidePoint(mContext,mService,mVibrator);
+                    myWindowManager.removeHidePoint(mContext);
+                    myWindowManager.createEasyPoint(mContext,mService,mVib);
                 }else {
                     Log.i("x,y", "" +xLength+"/"+ wLength + "/" + yLength);
                 }
-                mView.setBackgroundResource(R.drawable.shape);
+//                mView.setBackgroundResource(R.drawable.shape);
                 int alpha=sharedPreferences.getInt("alpha",50);
                 //Log.i("set alpha",""+alpha);
                 mView.getBackground().setAlpha(alpha);
@@ -170,18 +143,8 @@ public class PointView extends LinearLayout{
         return false;
     }
 
-    /**
-     * 将小圆点的参数传入，用于更新小圆点的位置。
-     *
-     * @param params
-     *            小圆点的参数
-     */
     public void setParams(WindowManager.LayoutParams params) {
         mParams = params;
-    }
-
-    public void setVibrator_val(int value){
-        vibrator_val=value;
     }
     /**
      * 更新小圆点在屏幕中的位置。
@@ -213,5 +176,40 @@ public class PointView extends LinearLayout{
         return statusBarHeight;
     }
 
+    @Override
+    protected void onDraw(Canvas canvas) {
+        // draw ring
+        super.onDraw(canvas);
+        // this width height is defined in xml
+        float width = (float) getWidth();
+        float height = (float) getHeight();
+        float radius;
+
+        if (width > height) {
+            radius = height / 3;
+        } else {
+            radius = width / 3;
+        }
+
+        paint.setAntiAlias(true);
+        paint.setColor(Color.parseColor("#939393"));
+        paint.setStrokeWidth(5);
+        paint.setStyle(Paint.Style.FILL);
+
+        float center_x, center_y;
+        paint.setStyle(Paint.Style.STROKE);
+
+        int screenWidth = windowManager.getDefaultDisplay().getWidth();
+        Log.i(TAG, "onDraw: screenWidth"+ screenWidth);
+        center_x = width / 2;
+        center_y = height / 2;
+
+        // left top right bottom
+        oval.set(center_x + radius/2 ,
+                center_y - radius,
+                width + radius,
+                center_y + radius);
+        canvas.drawArc(oval, 90, 180, false, paint);
+    }
 
 }

@@ -1,30 +1,21 @@
 package com.zhangjie.easypoint;
 
-import android.Manifest;
 import android.accessibilityservice.AccessibilityServiceInfo;
 import android.app.AlertDialog;
-import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.view.accessibility.AccessibilityManagerCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.view.ViewGroup;
 import android.view.accessibility.AccessibilityManager;
 import android.widget.Button;
@@ -33,7 +24,11 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.crashlytics.android.Crashlytics;
+
 import java.util.List;
+
+import io.fabric.sdk.android.Fabric;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -43,6 +38,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Fabric.with(this, new Crashlytics());
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -55,7 +51,8 @@ public class MainActivity extends AppCompatActivity {
         final LinearLayout tip= (LinearLayout) findViewById(R.id.tip);
         setting=getSharedPreferences("setting",MODE_PRIVATE);
         myWindowManager=new MyWindowManager();
-        Intent intent = new Intent(MainActivity.this, EasyPoint.class);
+        // for debug
+        Intent intent = new Intent(MainActivity.this, EasyPointService.class);
         startService(intent);
         checkService();
 
@@ -65,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 if (isEnabled) {
-                    Intent intent = new Intent(MainActivity.this, EasyPoint.class);
+                    Intent intent = new Intent(MainActivity.this, EasyPointService.class);
                     startService(intent);
                     tip.setVisibility(View.VISIBLE);
                 } else {
@@ -81,7 +78,7 @@ public class MainActivity extends AppCompatActivity {
                     showDialog(MainActivity.this, "取消激活圆点", "您激活了圆点。" + "在设置中：系统 → 辅助功能 → 服务 中取消激活" + getResources().getString(R.string.app_name)
                             + "后，便可停止使用圆点", "去关闭激活", "取消");
                 } else {
-                    Intent intent = new Intent(MainActivity.this, EasyPoint.class);
+                    Intent intent = new Intent(MainActivity.this, EasyPointService.class);
                     stopService(intent);
                     finish();
                 }
@@ -213,13 +210,13 @@ public class MainActivity extends AppCompatActivity {
                 seek_value.setText("" + i);
                 switch (type) {
                     case 0:
-                        setting.edit().putInt("vibrate", i).commit();
+                        setting.edit().putInt("vibrate", i).apply();
                         break;
                     case 1:
-                        setting.edit().putInt("alpha", i * 2).commit();
+                        setting.edit().putInt("alpha", i * 2).apply();
                         break;
                     case 2:
-                        setting.edit().putInt("size", i).commit();
+                        setting.edit().putInt("size", i).apply();
                         break;
                     default:
                         break;
@@ -261,12 +258,9 @@ public class MainActivity extends AppCompatActivity {
         assert manager != null;
         List<AccessibilityServiceInfo> list = manager.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK);
 
-        //System.out.println("list.size = " + list.size());
         if (list.size()==0) isEnabled=false;
         for (int i = 0; i < list.size(); i++) {
-            //System.out.println("已经可用的服务列表 = " + list.get(i).getId());
-            if ("com.zhangjie.easypoint/.EasyPoint".equals(list.get(i).getId())) {
-                //System.out.println("已启用");
+            if ("com.zhangjie.easypoint/.EasyPointService".equals(list.get(i).getId())) {
                 isEnabled = true;
                 break;
             }
