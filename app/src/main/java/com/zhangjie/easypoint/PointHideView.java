@@ -70,6 +70,7 @@ public class PointHideView extends LinearLayout{
         sharedPreferences=context.getSharedPreferences("setting", Context.MODE_PRIVATE);
 
         initPaint();
+        setWillNotDraw(false);
     }
 
     private void initPaint() {
@@ -127,15 +128,19 @@ public class PointHideView extends LinearLayout{
                 if(!isMove){
                     // todo 只要碰到就进入普通模式
                     Log.i("左滑,y", "" + xLength + "/" + yLength);
+                    int size = sharedPreferences.getInt("size",50);
+                    int vib = sharedPreferences.getInt("vib",50);
+                    int alpha = sharedPreferences.getInt("alpha",50);
                     myWindowManager.removeHidePoint(mContext);
                     myWindowManager.createEasyPoint(mContext,mService,mVib);
+                    myWindowManager.updateEasyPoint(mContext,vib,alpha,size);
                 }else {
                     Log.i("x,y", "" +xLength+"/"+ wLength + "/" + yLength);
                 }
 //                mView.setBackgroundResource(R.drawable.shape);
                 int alpha=sharedPreferences.getInt("alpha",50);
                 //Log.i("set alpha",""+alpha);
-                mView.getBackground().setAlpha(alpha);
+//                mView.getBackground().setAlpha(alpha);
                 break;
             default:
                 break;
@@ -179,28 +184,25 @@ public class PointHideView extends LinearLayout{
     @Override
     protected void onDraw(Canvas canvas) {
         // draw ring
-        super.onDraw(canvas);
+
         // this width height is defined in xml
         float width = (float) getWidth();
         float height = (float) getHeight();
         float radius;
 
         if (width > height) {
-            radius = height / 3;
+            radius = height / 4;
         } else {
-            radius = width / 3;
+            radius = width / 4;
         }
 
         paint.setAntiAlias(true);
         paint.setColor(Color.parseColor("#939393"));
         paint.setStrokeWidth(5);
-        paint.setStyle(Paint.Style.FILL);
 
         float center_x, center_y;
         paint.setStyle(Paint.Style.STROKE);
 
-        int screenWidth = windowManager.getDefaultDisplay().getWidth();
-        Log.i(TAG, "onDraw: screenWidth"+ screenWidth);
         center_x = width / 2;
         center_y = height / 2;
 
@@ -210,6 +212,7 @@ public class PointHideView extends LinearLayout{
                 width + radius,
                 center_y + radius);
         canvas.drawArc(oval, 90, 180, false, paint);
+        super.onDraw(canvas);
     }
 
 }

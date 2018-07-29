@@ -72,17 +72,10 @@ public class PointView extends LinearLayout{
         LayoutInflater.from(context).inflate(R.layout.point_simple,this);
         mView=findViewById(R.id.point_view);
         screenwidth=windowManager.getDefaultDisplay().getWidth();
-//        viewWidth=mView.getLayoutParams().width;
-//        viewHeight=mView.getLayoutParams().height;
+        viewWidth=mView.getLayoutParams().width;
+        viewHeight=mView.getLayoutParams().height;
         sharedPreferences=context.getSharedPreferences("setting", Context.MODE_PRIVATE);
-        int origin_width = sharedPreferences.getInt("origin", 0);
-        int alpha = sharedPreferences.getInt("alpha",50);
         vibrator_val=sharedPreferences.getInt("vibrate", 0);
-        int size=sharedPreferences.getInt("size",50);
-        float width = size/50.0f;
-        viewWidth= (int) (origin_width*width);
-        viewHeight= (int) (origin_width*width);
-        setAlpha(alpha);
     }
 
     boolean isMove=false;

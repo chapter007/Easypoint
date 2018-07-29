@@ -70,7 +70,7 @@ public class EasyPointService extends AccessibilityService {
             @Override
             public void run() {
                 myWindowManager.createEasyPoint(getApplicationContext(), service, vibrator);
-                MyWindowManager.updateEasyPoint(getApplicationContext(),
+                myWindowManager.updateEasyPoint(getApplicationContext(),
                         setting.getInt("vibrate", 0) + 1, setting.getInt("alpha", 0), setting.getInt("size", 0));
             }
         });
@@ -108,14 +108,16 @@ public class EasyPointService extends AccessibilityService {
         //切换为竖屏
         this.getResources().getConfiguration();
         if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
+            int size = getSharedPreferences("setting",MODE_PRIVATE).getInt("size",50);
+            int vib = getSharedPreferences("setting",MODE_PRIVATE).getInt("vib",50);
+            int alpha = getSharedPreferences("setting",MODE_PRIVATE).getInt("alpha",50);
             myWindowManager.removeHidePoint(getApplicationContext());
-//            myWindowManager.removeEasyPoint(getApplicationContext());
             myWindowManager.createEasyPoint(getApplicationContext(),this,vibrator);
+            myWindowManager.updateEasyPoint(getApplicationContext(),vib,alpha,size);
         }
         //切换为横屏
         else if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
             //todo 横屏的时候不是完全隐藏，而是收缩起来，类似小米那样
-//            myWindowManager.removeHidePoint(getApplicationContext());
             myWindowManager.removeEasyPoint(getApplicationContext());
             myWindowManager.createHidePoint(getApplicationContext(),this,vibrator);
         }

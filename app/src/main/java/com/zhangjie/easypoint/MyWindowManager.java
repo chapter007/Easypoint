@@ -46,7 +46,6 @@ public class MyWindowManager {
     void createEasyPoint(Context context, AccessibilityService service, Vibrator vibrator) {
         WindowManager windowManager = getWindowManager(context);
         sharedPreferences = context.getSharedPreferences("setting", Context.MODE_PRIVATE);
-
         int screenWidth = windowManager.getDefaultDisplay().getWidth();
         int screenHeight = windowManager.getDefaultDisplay().getHeight();
         if (smallWindow == null) {
@@ -108,7 +107,7 @@ public class MyWindowManager {
         }
     }
 
-    static void updateEasyPoint(final Context context, int vib, int alpha, int size) {
+    void updateEasyPoint(final Context context, int vib, int alpha, int size) {
         int origin_width = sharedPreferences.getInt("origin", 0);
         WindowManager manager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
         float width = size / 50.0f;
